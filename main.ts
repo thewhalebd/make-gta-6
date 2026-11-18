@@ -1,12 +1,15 @@
-// A working gta6-01 entry (Node 22, standard library only): the game is this directory's
-// game/ folder, plain static files a desktop browser loads offline (game/index.html and its ES
-// modules, no library and no network request), and the program hands it in. It copies game/ and
-// screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the
-// judge reads, with the vendored make.fun library. Only the plumbing, not an open world: Block
-// Dodger, a plain 2D canvas game where a paddle dodges falling blocks and catches coins, with a
-// title screen, score, lives and levels, game over and restart, flat colours and no sound. Build
-// your own open-world crime game in its place (three.js or any library you vendor under game/),
-// put your 3 or 4 PNG or JPEG screenshots in screenshots/ (the first by name is the cover) and run it.
+// Solmar Bay — a gta6-01 entry (Node 22, standard library only): an original open-world
+// crime game. Dario Cruz owes casino boss Cassian Voss $50,000 and works six missions out
+// of Mara Solis's garage to pay it down, across a sun-soaked coastal city he can explore
+// on foot and by car, with traffic, pedestrians, police chases, combat and a minimap.
+// The game is this directory's game/ folder, plain static files a desktop browser loads
+// offline (game/index.html and its ES modules, no library and no network request), and
+// the program hands it in. It copies game/ and screenshots/ from beside this file to
+// /output and writes /output/dossier.json, the summary the judge reads, with the vendored
+// make.fun library. The screenshots in screenshots/ are real renders of the game itself,
+// staged with ?shot=chase|play|mission|start&seed=1 (see shots.json); the first by name
+// is the cover. Build your own open world in game/ in its place and put your 3 or 4 PNG
+// or JPEG screenshots in screenshots/ — this entry already is that game, so run it.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
