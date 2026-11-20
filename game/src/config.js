@@ -1,19 +1,33 @@
-// Solmar Bay — every tuning number, name and colour in one place.
-// An original sun-soaked coastal city. Nothing here is from any commercial game:
-// the city, the people, the cars and the story are all invented for this entry.
-// The 3D edition adds the chase-camera tuning (CAMERA) and the golden-afternoon
-// palette the WebGL renderer lights the city with; every other number is the
-// same game the 2D edition played.
+// Solmar Bay — the single source of truth for numbers, names and colours.
+//
+// Everything tunable lives here so the rest of the game never hard-codes a
+// value twice: the size of the city, how the chase camera sits behind Dario,
+// how fast he walks and drives, how the police respond, what the six missions
+// pay, and the golden-afternoon palette the WebGL renderer lights with.
+//
+// The city, the people, the cars and the story are all invented for this
+// entry. Nothing is borrowed from any commercial game.
 
 export const STEP = 1 / 60;
 export const SAVE_KEY = 'solmar-bay.save.v1';
 
-// The city is 3600 x 2600 world units. Roads run on a grid; the south edge is the beach.
-export const WORLD = { width: 3600, height: 2600, roadGap: 450, roadWidth: 96, beachY: 2320 };
+export const CITY_NAME = 'SOLMAR BAY';
+export const GAME_TITLE = 'SOLMAR BAY';
+export const GAME_SUBTITLE = 'an open-world crime story';
 
-// The 3D chase camera: how far behind the player it sits, how high, how far
-// ahead it looks, and how much both grow with the car's speed. The view is
-// a 60-degree perspective, the same framing a third-person open-world game uses.
+// The world is 3600 by 2600 units. Roads sit on a 450-unit grid and the
+// southern strip, past y = 2320, is sand and then sea.
+export const WORLD = {
+  width: 3600,
+  height: 2600,
+  roadGap: 450,
+  roadWidth: 96,
+  beachY: 2320,
+};
+
+// Chase camera: distance and height behind the player, how far ahead it
+// looks, and how much both stretch as the car picks up speed. 60 degrees
+// of perspective, the usual third-person framing.
 export const CAMERA = {
   fov: 60,
   distance: 260,
@@ -23,12 +37,8 @@ export const CAMERA = {
   speedHeight: 0.05,
 };
 
-export const CITY_NAME = 'SOLMAR BAY';
-export const GAME_TITLE = 'SOLMAR BAY';
-export const GAME_SUBTITLE = 'an open-world crime story';
-
-// The story: Dario Cruz comes home to Solmar Bay owing money to casino boss Cassian Voss.
-// His old friend Mara Solis runs a garage and gives him jobs to pay the debt off.
+// Dario Cruz comes home owing casino boss Cassian Voss $50,000. His old
+// friend Mara Solis runs a garage and hands him the jobs that pay it down.
 export const STORY = {
   hero: 'Dario Cruz',
   ally: 'Mara Solis',
@@ -53,8 +63,9 @@ export const PLAYER = {
   startMoney: 120,
 };
 
+// Arcade driving: acceleration, braking, steering and grip for the car
+// Dario is driving. Individual models scale top speed and acceleration.
 export const CAR = {
-  // arcade handling: accelerate, steer, grip, top speed
   accel: 620,
   brake: 900,
   reverseAccel: 320,
@@ -66,7 +77,8 @@ export const CAR = {
   width: 26,
 };
 
-// Car models the player can steal or find, each with its own paint and handling flavour.
+// The cars of Solmar Bay. Each one has its own paint and its own feel;
+// the Voss GT is the rare fast one.
 export const CAR_MODELS = [
   { name: 'Coral Hatchback', color: '#e2725b', top: 430, accel: 540 },
   { name: 'Solmar Sedan', color: '#4f7fb8', top: 480, accel: 580 },
@@ -80,19 +92,20 @@ export const POLICE = {
   carColor: '#e8e8e8',
   maxSpeed: 600,
   accel: 700,
-  arrestTime: 1.6, // seconds a cop must touch the player on foot to bust him
+  // How long a cop must stay touching Dario on foot before the bust lands.
+  arrestTime: 1.6,
   spawnInterval: 2.2,
   maxCops: 6,
 };
 
-// Wanted stars 0-5: heat decays when no cop can see the player.
+// Wanted level, 0 to 5 stars. Heat fades once no cop can see Dario.
 export const WANTED = {
   decayDelay: 6,
-  decayRate: 0.35, // heat points per second once hidden
+  decayRate: 0.35,
   stealCar: 1,
   shoot: 2,
   hitPedestrian: 1,
-  killThug: 0, // thugs are fair game in missions
+  killThug: 0,
 };
 
 export const MISSIONS = [
@@ -155,6 +168,7 @@ export const MISSIONS = [
   },
 ];
 
+// Golden-afternoon palette: warm sky, green city, pale sand, blue sea.
 export const PALETTE = {
   sky: '#ffd9a0',
   grass: '#7fb069',

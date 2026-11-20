@@ -1,16 +1,19 @@
-// A small seeded random generator (mulberry32) plus the helpers the city and the
-// traffic use, so a ?seed=N screenshot stages exactly the same Solmar Bay every time.
-// The 3D camera smooths its heading through angleLerp(), which always turns the
-// short way around the circle instead of spinning the long way.
+// Seeded randomness and the small maths helpers the whole game shares.
+//
+// createRandom is mulberry32: a tiny generator whose whole sequence is
+// fixed by its seed, so `?seed=N` always builds the same city, the same
+// traffic and the same pedestrians. The angle helpers live here too —
+// angleLerp is what lets the chase camera swing the short way around
+// instead of spinning the long way when Dario turns.
 
 export function createRandom(seed) {
-  let a = seed >>> 0;
-  return function random() {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  let state = seed >>> 0;
+  return function next() {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
   };
 }
 
@@ -26,11 +29,12 @@ export function rangeInt(random, min, max) {
   return min + Math.floor(random() * (max - min + 1));
 }
 
-export function chance(random, p) {
-  return random() < p;
+export function chance(random, probability) {
+  return random() < probability;
 }
 
-// A stable hash of two integers, for per-block colour variation that never changes.
+// A deterministic hash of two integers, used for per-block colour and
+// window variation that must never change between runs.
 export function hash2(x, y) {
   let h = (x * 374761393 + y * 668265263) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -38,7 +42,9 @@ export function hash2(x, y) {
 }
 
 export function clamp(value, min, max) {
-  return value < min ? min : value > max ? max : value;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
 }
 
 export function lerp(a, b, t) {
@@ -53,6 +59,7 @@ export function angleTo(ax, ay, bx, by) {
   return Math.atan2(by - ay, bx - ax);
 }
 
+// The signed turn from angle a to angle b, wrapped into (-PI, PI].
 export function angleDiff(a, b) {
   let d = (b - a) % (Math.PI * 2);
   if (d > Math.PI) d -= Math.PI * 2;

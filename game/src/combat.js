@@ -1,18 +1,23 @@
-// Combat: fists, the pistol, bullets, and the thugs and the boss who fight back.
-// Thugs chase the player and punch; the boss, Cassian Voss, shoots back. Bullets
-// are a small pool; a hit on a thug or the boss pays out, a hit on a bystander
-// raises the wanted level. The 3D edition keeps every rule and only changes
-// how the player aims: the mouse point is raycast onto the street by the
-// WebGL renderer instead of being read off a top-down map.
+// Combat: fists, the pistol, bullets, and the thugs and the boss who fight
+// back. Thugs chase the player and punch; the boss, Cassian Voss, shoots
+// back. Bullets are a small pool; a hit on a thug or the boss counts toward
+// the mission, a hit on a bystander raises the wanted level. The 3D edition
+// keeps every rule and only changes how the player aims: the mouse point is
+// raycast onto the street by the WebGL renderer instead of being read off a
+// top-down map.
 
 import { PLAYER, WANTED } from './config.js';
-import { angleTo, clamp, dist } from './random.js';
+import { angleTo, dist } from './random.js';
 import { addWanted, knockPedestrian } from './pedestrians.js';
 import { hurtPlayer } from './player.js';
 
+const BULLET_POOL = 48;
+const BULLET_SPEED = 900;
+const BULLET_LIFE = 0.6;
+
 export function createBullets() {
   const bullets = [];
-  for (let i = 0; i < 48; i += 1) {
+  for (let i = 0; i < BULLET_POOL; i += 1) {
     bullets.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, fromPlayer: true });
   }
   return bullets;
@@ -24,9 +29,9 @@ export function fireBullet(state, x, y, angle, fromPlayer) {
     b.active = true;
     b.x = x + Math.cos(angle) * 22;
     b.y = y + Math.sin(angle) * 22;
-    b.vx = Math.cos(angle) * 900;
-    b.vy = Math.sin(angle) * 900;
-    b.life = 0.6;
+    b.vx = Math.cos(angle) * BULLET_SPEED;
+    b.vy = Math.sin(angle) * BULLET_SPEED;
+    b.life = BULLET_LIFE;
     b.fromPlayer = fromPlayer;
     state.particles.spawn(2, b.x, b.y, 0, 0, 0.08, 10, '#ffe9a0');
     return true;
@@ -66,7 +71,7 @@ export function shootAt(state, mouseWorld) {
   state.shotsFired += 1;
   state.lastShotTime = state.time;
   addWanted(state, WANTED.shoot, 'Fired a gun');
-  // A muzzle flash and a little kick.
+  // A muzzle flash and a little kick at the gun's tip.
   state.particles.spawn(2, p.x + Math.cos(p.angle) * 26, p.y + Math.sin(p.angle) * 26, 0, 0, 0.07, 12, '#ffe9a0');
 }
 
@@ -88,8 +93,9 @@ export function updateBullets(state, dt) {
     b.life -= dt;
     b.x += b.vx * dt;
     b.y += b.vy * dt;
-    if (b.life <= 0 || state.city.isBlocked(b.x, b.y, 4)) {
-      if (state.city.isBlocked(b.x, b.y, 4)) state.particles.burst(b.x, b.y, 1, 4, 120, '#ffd94d', 3);
+    const blocked = state.city.isBlocked(b.x, b.y, 4);
+    if (b.life <= 0 || blocked) {
+      if (blocked) state.particles.burst(b.x, b.y, 1, 4, 120, '#ffd94d', 3);
       b.active = false;
       continue;
     }
@@ -131,7 +137,11 @@ export function updateBullets(state, dt) {
 // The boss shoots instead of punching.
 export function spawnThug(state, x, y, boss = false) {
   const thug = {
-    x, y, angle: 0, hp: boss ? 220 : 60, boss,
+    x,
+    y,
+    angle: 0,
+    hp: boss ? 220 : 60,
+    boss,
     speed: boss ? 120 : 150,
     attackTimer: 0,
     shootTimer: 1.2,
@@ -148,18 +158,18 @@ export function updateThugs(state, dt) {
     const d = dist(thug.x, thug.y, p.x, p.y);
     thug.attackTimer -= dt;
     if (d < 420) {
-      const a = angleTo(thug.x, thug.y, p.x, p.y);
-      thug.angle = a;
+      const toward = angleTo(thug.x, thug.y, p.x, p.y);
+      thug.angle = toward;
       if (thug.boss) {
         thug.shootTimer -= dt;
         if (thug.shootTimer <= 0 && d < 380 && !p.inCar) {
           thug.shootTimer = 1.1;
-          fireBullet(state, thug.x, thug.y, a, false);
+          fireBullet(state, thug.x, thug.y, toward, false);
           state.audio.gunshot();
         }
       } else if (d > 26) {
-        const nx = thug.x + Math.cos(a) * thug.speed * dt;
-        const ny = thug.y + Math.sin(a) * thug.speed * dt;
+        const nx = thug.x + Math.cos(toward) * thug.speed * dt;
+        const ny = thug.y + Math.sin(toward) * thug.speed * dt;
         if (!state.city.isBlocked(nx, ny, 12)) {
           thug.x = nx;
           thug.y = ny;
@@ -170,16 +180,17 @@ export function updateThugs(state, dt) {
         state.audio.punch();
       }
     } else if (d < 900) {
-      // Drift back toward the plaza when the player is near but not close.
-      const a = angleTo(thug.x, thug.y, p.x, p.y);
-      const nx = thug.x + Math.cos(a) * thug.speed * 0.4 * dt;
-      const ny = thug.y + Math.sin(a) * thug.speed * 0.4 * dt;
+      // Drift toward the player at a slow walk when he is near but not close.
+      const toward = angleTo(thug.x, thug.y, p.x, p.y);
+      const nx = thug.x + Math.cos(toward) * thug.speed * 0.4 * dt;
+      const ny = thug.y + Math.sin(toward) * thug.speed * 0.4 * dt;
       if (!state.city.isBlocked(nx, ny, 12)) {
         thug.x = nx;
         thug.y = ny;
       }
     }
   }
-  // Remove the dead once the mission counts them.
+  // Remove the dead once the mission has counted them; the boss stays in
+  // the list even down, because the mission watches the bossDown flag.
   state.thugs = state.thugs.filter((t) => t.hp > 0 || t.boss);
 }

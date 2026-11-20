@@ -1,9 +1,10 @@
-// Missions and the story: six jobs from Mara Solis and Tito Reyes that pay down
-// Dario's $50,000 debt to Cassian Voss. Each mission is a list of steps — go to a
-// place, steal a car, deliver it, defeat thugs, escape the police, face the boss.
-// Completing a step advances the story, pays cash and saves the game. The 3D
-// rebuild keeps all six missions and their rules; only the golden marker is now
-// a tall beam in the 3D world instead of a painted stripe on a flat map.
+// Missions and the story: six jobs from Mara Solis and Tito Reyes that pay
+// down Dario's $50,000 debt to Cassian Voss. Each mission is a list of steps
+// — go to a place, steal a car, deliver it, defeat thugs, escape the police,
+// face the boss. Completing a step advances the story, pays cash and saves
+// the game. The 3D rebuild keeps all six missions and their rules; only the
+// golden marker is now a tall beam in the 3D world instead of a painted
+// stripe on a flat map.
 
 import { MISSIONS, STORY } from './config.js';
 import { dist } from './random.js';
@@ -23,6 +24,7 @@ export function createMissions() {
     dialogueTimer: 0,
     spawned: false,
     startKills: 0,
+    defeated: 0,
     escapeTimer: 0,
     targetCar: null,
   };
@@ -47,6 +49,15 @@ export function missionObjective(missions) {
   return m.objective;
 }
 
+// How much of the debt is still owed, from the missions already finished.
+function debtLeft(missions) {
+  const paid = missions.done.reduce((sum, id) => {
+    const found = MISSIONS.find((x) => x.id === id);
+    return sum + (found ? found.pay : 0);
+  }, 0);
+  return Math.max(0, STORY.debt - paid);
+}
+
 export function startMission(state) {
   const missions = state.missions;
   const m = currentMission(missions);
@@ -56,6 +67,7 @@ export function startMission(state) {
   missions.spawned = false;
   missions.startKills = state.kills;
   missions.defeated = 0;
+  missions.escapeTimer = 0;
   missions.dialogue = m.intro;
   missions.dialogueTimer = 7;
   missions.banner = m.title;
@@ -90,9 +102,11 @@ function completeMission(state) {
   missions.index += 1;
   missions.banner = `MISSION COMPLETE — +$${m.pay}`;
   missions.bannerTimer = 3.5;
-  missions.dialogue = m.id === 'king'
-    ? 'Mara: "It\'s over. Voss is done, the debt is gone. Solmar Bay is yours now, Dario — king of the bay."'
-    : `Mara: "Good work. Debt left: $${Math.max(0, STORY.debt - missions.done.reduce((sum, id) => sum + (MISSIONS.find((x) => x.id === id)?.pay || 0), 0)).toLocaleString()}."`;
+  if (m.id === 'king') {
+    missions.dialogue = 'Mara: "It\'s over. Voss is done, the debt is gone. Solmar Bay is yours now, Dario — king of the bay."';
+  } else {
+    missions.dialogue = `Mara: "Good work. Debt left: $${debtLeft(missions).toLocaleString()}."`;
+  }
   missions.dialogueTimer = 6;
   state.audio.cash();
   state.audio.mission();
@@ -104,8 +118,9 @@ function advanceStep(state) {
   const missions = state.missions;
   const m = currentMission(missions);
   missions.step += 1;
-  if (missions.step >= m.steps.length) completeMission(state);
-  else {
+  if (missions.step >= m.steps.length) {
+    completeMission(state);
+  } else {
     missions.banner = 'Next objective';
     missions.bannerTimer = 1.6;
   }
@@ -122,7 +137,8 @@ export function updateMissions(state, dt) {
   const p = state.player;
 
   if (s.kind === 'goto') {
-    if (dist(p.x, p.y, s.x, s.y) < 70 && (!s.inCar || p.inCar)) advanceStep(state);
+    const arrived = dist(p.x, p.y, s.x, s.y) < 70 && (!s.inCar || p.inCar);
+    if (arrived) advanceStep(state);
   } else if (s.kind === 'steal') {
     // The target car is the parked Marina Coupe on the beach.
     if (!missions.targetCar) {
@@ -130,19 +146,22 @@ export function updateMissions(state, dt) {
     }
     if (missions.targetCar && p.car === missions.targetCar) advanceStep(state);
   } else if (s.kind === 'defeat') {
-    const defeated = state.kills - missions.startKills;
-    missions.defeated = defeated;
-    if (defeated >= s.count) advanceStep(state);
+    missions.defeated = state.kills - missions.startKills;
+    if (missions.defeated >= s.count) advanceStep(state);
   } else if (s.kind === 'escape') {
-    if (dist(p.x, p.y, s.x, s.y) < 90 && state.wanted === 0) advanceStep(state);
-    if (dist(p.x, p.y, s.x, s.y) < 90 && state.wanted > 0) {
+    const atHideout = dist(p.x, p.y, s.x, s.y) < 90;
+    if (atHideout && state.wanted === 0) {
+      advanceStep(state);
+    } else if (atHideout && state.wanted > 0) {
       missions.escapeTimer += dt;
       if (missions.escapeTimer > 4) {
         // Hiding in the hills long enough shakes the heat.
         clearPolice(state);
         missions.escapeTimer = 0;
       }
-    } else missions.escapeTimer = 0;
+    } else {
+      missions.escapeTimer = 0;
+    }
   } else if (s.kind === 'boss') {
     if (state.bossDown) advanceStep(state);
   }

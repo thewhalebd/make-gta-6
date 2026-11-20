@@ -84,12 +84,12 @@ The game is split into one-job modules under `game/src/`, drawn in two layers:
 `render.js` paints the 3D world with raw WebGL (a single lambert-sun shader, the
 city baked once into a static buffer, cars and people rebuilt each frame) on the
 `#game` canvas, and `hud.js` draws the HUD, minimap and menus with canvas 2D on
-the transparent `#hud` canvas stacked on top. The rest is unchanged:
-`config.js` (tuning, story, missions, camera), `city.js` (city generation and
-collision), `vehicles.js` (traffic and driving), `pedestrians.js`, `police.js`,
+the transparent `#hud` canvas stacked on top. Around them: `config.js` (tuning,
+story, missions, camera), `city.js` (city generation and collision),
+`vehicles.js` (traffic and driving), `pedestrians.js`, `police.js`,
 `player.js`, `combat.js` (fists, pistol, thugs), `missions.js`, `audio.js`
 (WebAudio sound and music), `input.js`, `particles.js`, `save.js`, `shots.js`
-(deterministic screenshot scenes), `main.js` (the loop and the screens).
+(deterministic screenshot scenes) and `main.js` (the loop and the screens).
 
 ## License
 

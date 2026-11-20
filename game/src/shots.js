@@ -1,16 +1,17 @@
-// The screenshot scenes behind ?shot=start|play|chase|mission. Each one stages
-// the real game — the same state the player gets, with the same systems running
-// — then plays it forward a few seconds with a simple autopilot, so the frame is
-// what a short game really looks like and the same seed always gives the same frame.
-// In the 3D edition the chase camera follows the staged player or car, so each
-// scene is framed from behind the action the way the game itself plays.
+// The screenshot scenes behind ?shot=start|play|chase|mission. Each one
+// stages the real game — the same state the player gets, with the same
+// systems running — then plays it forward a few seconds with a simple
+// autopilot, so the frame is what a short session really looks like and the
+// same seed always gives the same frame. In the 3D edition the chase camera
+// follows the staged player or car, so each scene is framed from behind the
+// action the way the game itself plays.
 
 import { STEP } from './config.js';
 import { startMission } from './missions.js';
 
+// Step the world forward with traffic and pedestrians moving; the player
+// drives forward in the chase scene and walks in the others.
 function simulate(state, seconds, drive) {
-  // Step the world forward with the traffic and pedestrians moving; the player
-  // drives forward in the chase scene, walks in the others.
   for (let i = 0; i < seconds / STEP; i += 1) {
     state.stepWorld(STEP, drive);
   }
@@ -55,8 +56,15 @@ export function stageShot(state, name) {
     const offsets = [-90, 0, 90];
     for (let i = 0; i < 3; i += 1) {
       state.police.cars.push({
-        x: car.x + 100, y: car.y + offsets[i], angle: Math.PI, speed: 440,
-        color: '#e8e8e8', kind: 'police', model: 'Police Cruiser', top: 600, accel: 700,
+        x: car.x + 100,
+        y: car.y + offsets[i],
+        angle: Math.PI,
+        speed: 440,
+        color: '#e8e8e8',
+        kind: 'police',
+        model: 'Police Cruiser',
+        top: 600,
+        accel: 700,
       });
     }
     state.cameraDistance = 380;
@@ -79,9 +87,9 @@ export function stageShot(state, name) {
     simulate(state, 0.8, false);
     return 'play';
   }
-  // play: Dario on foot on a busy downtown street, traffic and pedestrians around.
-  // He stands on the road itself, so the chase camera sits on the street too
-  // and looks down it, instead of pressing against a building wall.
+  // play: Dario on foot on a busy downtown street, traffic and pedestrians
+  // around. He stands on the road itself, so the chase camera sits on the
+  // street too and looks down it, instead of pressing against a building wall.
   p.x = 2100;
   p.y = 900;
   p.angle = 0;
@@ -93,8 +101,8 @@ export function stageShot(state, name) {
   return 'play';
 }
 
-// The autopilot the staged scenes use while they play forward: drive straight
-// ahead (chase) or stroll toward the nearest road (on foot).
+// The autopilot the staged scenes use while they play forward: drive
+// straight ahead (chase) or stroll toward the nearest road (on foot).
 export function autopilotDrive(state) {
   const car = state.player.car;
   if (!car) return { throttle: 0, steer: 0 };

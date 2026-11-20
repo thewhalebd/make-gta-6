@@ -1,9 +1,12 @@
-// Save and continue: the player's money, health, ammo, completed missions and
-// position are kept in localStorage, so quitting and coming back resumes the story.
-// A save is written after every mission and whenever the player pauses.
-// (3D edition fix: the money field used to read state.money, which is undefined,
-// so the saved JSON dropped it and loadSave() rejected every save as invalid;
-// it now reads state.player.money, and a paused game really does continue.)
+// Save and continue: the player's money, health, ammo, finished missions
+// and position are kept in localStorage, so quitting and coming back resumes
+// the story. A save is written after every mission and whenever the player
+// pauses.
+//
+// The money field reads state.player.money — the player's wallet lives on
+// the player object, and an earlier version read a state.money that does not
+// exist, so the saved JSON dropped the money and loadSave() rejected every
+// save as invalid. A paused game really does continue now.
 
 import { SAVE_KEY } from './config.js';
 

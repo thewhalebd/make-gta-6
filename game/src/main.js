@@ -1,11 +1,11 @@
 // Solmar Bay — boot and the one loop. The game moves between six screens:
-// title, play, paused, busted, wasted and win. Input is read every frame, the
-// world advances in fixed 1/60 s steps, and the renderer paints what is there.
-// The 3D edition draws the world with raw WebGL on #game and the HUD and menus
-// with canvas 2D on a second canvas, #hud, stacked on top of it.
+// title, play, paused, busted, wasted and win. Input is read every frame,
+// the world advances in fixed 1/60 s steps, and the renderer paints what is
+// there. The 3D edition draws the world with raw WebGL on #game and the HUD
+// and menus with canvas 2D on a second canvas, #hud, stacked on top of it.
 //
-// ?seed=N fixes the city. ?shot=start|play|chase|mission (with &seed=N) stages
-// that scene instead of running the loop, paints it twice and sets
+// ?seed=N fixes the city. ?shot=start|play|chase|mission (with &seed=N)
+// stages that scene instead of running the loop, paints it twice and sets
 // window.__shotReady for a screenshot.
 
 import { PLAYER, STEP } from './config.js';
@@ -26,6 +26,8 @@ import { loadSave, writeSave } from './save.js';
 import { stageShot } from './shots.js';
 
 const MAX_FRAME = 0.25;
+const GARAGE_X = 1125;
+const GARAGE_Y = 750;
 
 const params = new URLSearchParams(window.location.search);
 const shot = params.get('shot');
@@ -42,11 +44,13 @@ const renderer = createRenderer(canvas);
 const hud = createHud(hudCanvas);
 
 function createState() {
-  const state = {
-    random, city, audio,
+  return {
+    random,
+    city,
+    audio,
     time: 0,
     timeOfDay: 0.55, // a golden afternoon in Solmar Bay
-    player: createPlayer(1125, 750),
+    player: createPlayer(GARAGE_X, GARAGE_Y),
     cars: createVehicles(city, random),
     peds: createPedestrians(city, random, 42),
     police: createPolice(),
@@ -71,7 +75,6 @@ function createState() {
     cameraSnap: false,
     view: renderer.view,
   };
-  return state;
 }
 
 const state = createState();
@@ -109,12 +112,9 @@ state.stepWorld = function stepWorld(dt, drive) {
   } else {
     state.missionMarker = null;
   }
-  if (state.busted || state.wasted) {
-    // handled by the screen machine in runGame
-  }
 };
 
-function respawn(state) {
+function respawn() {
   const p = state.player;
   if (p.car) {
     p.car.kind = 'parked';
@@ -122,8 +122,8 @@ function respawn(state) {
     p.car = null;
   }
   p.inCar = false;
-  p.x = 1125;
-  p.y = 750;
+  p.x = GARAGE_X;
+  p.y = GARAGE_Y;
   p.health = PLAYER.health;
   p.ammo = Math.max(p.ammo, 12);
   state.wanted = 0;
@@ -206,7 +206,7 @@ function runGame() {
     }
     if (screen === SCREEN_BUSTED || screen === SCREEN_WASTED || screen === SCREEN_WIN) {
       if (actions & ACTION_CONFIRM) {
-        respawn(state);
+        respawn();
         screen = SCREEN_PLAY;
         announce('Back on the streets of Solmar Bay.');
       }
@@ -254,6 +254,27 @@ function runGame() {
     }
   }
 
+  function drawScreen() {
+    renderer.draw(state, screen);
+    if (screen === SCREEN_TITLE) {
+      hud.drawTitle(state, state.missions.done.length);
+    } else if (screen === SCREEN_PAUSED) {
+      hud.drawHud(state, renderer.view);
+      hud.drawPanel('Paused', ['Your progress is saved.', `Money $${state.player.money.toLocaleString()} · Missions ${state.missions.done.length}/6`], 'Press P or click to resume');
+    } else if (screen === SCREEN_BUSTED) {
+      hud.drawHud(state, renderer.view);
+      hud.drawPanel('BUSTED', ['The Solmar Bay police caught you.', 'They took $300 of your cash.'], 'Press Space to get back out there');
+    } else if (screen === SCREEN_WASTED) {
+      hud.drawHud(state, renderer.view);
+      hud.drawPanel('WASTED', ['You got taken down on the streets.', 'You woke up at the garage, half your cash gone.'], 'Press Space to get back out there');
+    } else if (screen === SCREEN_WIN) {
+      hud.drawHud(state, renderer.view);
+      hud.drawPanel('KING OF SOLMAR BAY', ['The debt is paid. Voss is finished.', `You finished with $${state.player.money.toLocaleString()} and ${state.kills} takedowns.`], 'Press Space to keep playing the city');
+    } else {
+      hud.drawHud(state, renderer.view);
+    }
+  }
+
   function frame(now) {
     requestAnimationFrame(frame);
     accumulator += Math.min((now - last) / 1000, MAX_FRAME);
@@ -284,23 +305,7 @@ function runGame() {
     } else {
       renderer.updateCamera(state, 1 / 60);
     }
-    renderer.draw(state, screen);
-    if (screen === SCREEN_TITLE) hud.drawTitle(state, state.missions.done.length);
-    else if (screen === SCREEN_PAUSED) {
-      hud.drawHud(state, renderer.view);
-      hud.drawPanel('Paused', ['Your progress is saved.', `Money $${state.player.money.toLocaleString()} · Missions ${state.missions.done.length}/6`], 'Press P or click to resume');
-    } else if (screen === SCREEN_BUSTED) {
-      hud.drawHud(state, renderer.view);
-      hud.drawPanel('BUSTED', ['The Solmar Bay police caught you.', 'They took $300 of your cash.'], 'Press Space to get back out there');
-    } else if (screen === SCREEN_WASTED) {
-      hud.drawHud(state, renderer.view);
-      hud.drawPanel('WASTED', ['You got taken down on the streets.', 'You woke up at the garage, half your cash gone.'], 'Press Space to get back out there');
-    } else if (screen === SCREEN_WIN) {
-      hud.drawHud(state, renderer.view);
-      hud.drawPanel('KING OF SOLMAR BAY', ['The debt is paid. Voss is finished.', `You finished with $${state.player.money.toLocaleString()} and ${state.kills} takedowns.`], 'Press Space to keep playing the city');
-    } else {
-      hud.drawHud(state, renderer.view);
-    }
+    drawScreen();
   }
 
   // Continue with C on the title screen; Space starts a new game.

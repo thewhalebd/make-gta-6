@@ -1,8 +1,9 @@
-// Sound and music, all synthesized with WebAudio oscillators — no audio files,
-// no network. A tiny sequencer plays a sunny latin-flavoured loop (bass + chords +
-// a plucked lead), and one-shot effects cover gunshots, punches, sirens, pickups
-// and the engine hum while driving. The 3D rebuild changes nothing here: the
-// same sounds play over the same game, only the camera moved.
+// Sound and music, all synthesized with WebAudio oscillators — no audio
+// files, no network. A tiny sequencer plays a sunny latin-flavoured loop
+// (bass plus chords plus a plucked lead), and one-shot effects cover
+// gunshots, punches, sirens, pickups and the engine hum while driving.
+// The 3D rebuild changes nothing here: the same sounds play over the same
+// game, only the camera moved.
 
 export function createAudio() {
   let context = null;
@@ -13,9 +14,10 @@ export function createAudio() {
   let muted = false;
   let step = 0;
 
-  // A minor-key groove: bass roots and a bright lead, 8 steps a bar at 112 bpm.
-  const BASS = [110, 0, 110, 0, 130.8, 0, 98, 0, 110, 0, 110, 0, 146.8, 0, 164.8, 0];
-  const LEAD = [440, 523.3, 659.3, 523.3, 587.3, 659.3, 783.9, 659.3, 440, 523.3, 659.3, 880, 783.9, 659.3, 587.3, 523.3];
+  // A minor-key groove, 16 steps a bar at 112 bpm: bass roots and a bright
+  // lead line. Zeros are rests.
+  const BASS_LINE = [110, 0, 110, 0, 130.8, 0, 98, 0, 110, 0, 110, 0, 146.8, 0, 164.8, 0];
+  const LEAD_LINE = [440, 523.3, 659.3, 523.3, 587.3, 659.3, 783.9, 659.3, 440, 523.3, 659.3, 880, 783.9, 659.3, 587.3, 523.3];
 
   function ensure() {
     if (context) {
@@ -23,9 +25,9 @@ export function createAudio() {
       return true;
     }
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return false;
-      context = new AC();
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return false;
+      context = new AudioCtor();
       master = context.createGain();
       master.gain.value = 0.5;
       master.connect(context.destination);
@@ -35,49 +37,53 @@ export function createAudio() {
     }
   }
 
-  function tone(freq, dur, type, vol, when = 0, slideTo = 0) {
+  // One oscillator note: an optional slide down, a quick fade to silence.
+  function tone(freq, dur, type, vol, delay = 0, slideTo = 0) {
     if (!ensure() || muted) return;
-    const t0 = context.currentTime + when;
+    const start = context.currentTime + delay;
     const osc = context.createOscillator();
     const gain = context.createGain();
     osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
-    gain.gain.setValueAtTime(vol, t0);
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.frequency.setValueAtTime(freq, start);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + dur);
+    gain.gain.setValueAtTime(vol, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
     osc.connect(gain);
     gain.connect(master);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
+    osc.start(start);
+    osc.stop(start + dur + 0.02);
   }
 
-  function noise(dur, vol, filterFreq) {
+  // A burst of filtered noise, fading out — the body of a gunshot or crash.
+  function noiseBurst(dur, vol, filterFreq) {
     if (!ensure() || muted) return;
-    const t0 = context.currentTime;
-    const len = Math.floor(context.sampleRate * dur);
-    const buffer = context.createBuffer(1, len, context.sampleRate);
+    const start = context.currentTime;
+    const length = Math.floor(context.sampleRate * dur);
+    const buffer = context.createBuffer(1, length, context.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < len; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
-    const src = context.createBufferSource();
-    src.buffer = buffer;
+    for (let i = 0; i < length; i += 1) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+    }
+    const source = context.createBufferSource();
+    source.buffer = buffer;
     const filter = context.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = filterFreq;
     const gain = context.createGain();
     gain.gain.value = vol;
-    src.connect(filter);
+    source.connect(filter);
     filter.connect(gain);
     gain.connect(master);
-    src.start(t0);
+    source.start(start);
   }
 
   function musicStep() {
     if (!context || muted) return;
     const i = step % 16;
-    const bass = BASS[i];
+    const bass = BASS_LINE[i];
     if (bass) tone(bass, 0.22, 'triangle', 0.16);
-    if (i % 4 === 0) tone(LEAD[i] / 2, 0.3, 'sine', 0.05);
-    if (i % 2 === 0) tone(LEAD[i], 0.16, 'square', 0.035);
+    if (i % 4 === 0) tone(LEAD_LINE[i] / 2, 0.3, 'sine', 0.05);
+    if (i % 2 === 0) tone(LEAD_LINE[i], 0.16, 'square', 0.035);
     step += 1;
   }
 
@@ -99,11 +105,11 @@ export function createAudio() {
       musicTimer = null;
     },
     gunshot() {
-      noise(0.14, 0.5, 1800);
+      noiseBurst(0.14, 0.5, 1800);
       tone(180, 0.08, 'square', 0.2, 0, 60);
     },
     punch() {
-      noise(0.08, 0.3, 500);
+      noiseBurst(0.08, 0.3, 500);
       tone(120, 0.08, 'sine', 0.25, 0, 60);
     },
     pickup() {
@@ -116,7 +122,7 @@ export function createAudio() {
       tone(1568, 0.14, 'sine', 0.2, 0.14);
     },
     crash() {
-      noise(0.25, 0.45, 700);
+      noiseBurst(0.25, 0.45, 700);
     },
     siren() {
       tone(720, 0.4, 'sine', 0.06, 0, 980);

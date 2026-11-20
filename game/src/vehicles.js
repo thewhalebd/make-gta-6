@@ -1,9 +1,10 @@
-// Vehicles: the traffic that fills Solmar Bay's roads, the parked cars waiting to
-// be stolen, and the arcade driving model for the car the player is in. Traffic
-// cars follow the road grid, keep to their lane, brake for the car ahead and pick
-// a new turning at every intersection. The 3D edition keeps the driving model
-// exactly; the renderer builds each car from boxes — body, cabin, wheels —
-// with the same paint, length and width the 2D game drew.
+// Vehicles: the traffic that fills Solmar Bay's roads, the parked cars
+// waiting to be stolen, and the arcade driving model for the car the player
+// is in. Traffic cars follow the road grid, keep to their lane, brake for
+// the car ahead and pick a new turning at every intersection. The 3D
+// renderer builds each car from boxes — body, cabin, wheels — with the same
+// paint, length and width the 2D game drew, so the driving model is
+// unchanged; only the view moved.
 
 import { CAR, CAR_MODELS, WORLD } from './config.js';
 import { angleDiff, clamp, pick, range } from './random.js';
@@ -15,7 +16,9 @@ function makeCar(model, x, y, angle) {
     top: model.top,
     accel: model.accel,
     taxi: !!model.taxi,
-    x, y, angle,
+    x,
+    y,
+    angle,
     speed: 0,
     kind: 'traffic',
     targetX: x,
@@ -25,32 +28,39 @@ function makeCar(model, x, y, angle) {
   };
 }
 
+// Parked cars along the curbs, ready to be stolen with E. The first one is
+// the Marina Coupe for mission 2, parked by the beach.
+const PARKED_SPOTS = [
+  { x: 2700, y: 2400, model: 3 },
+  { x: 700, y: 500, model: 0 },
+  { x: 1600, y: 950, model: 1 },
+  { x: 2500, y: 1400, model: 4 },
+  { x: 1150, y: 1600, model: 1 },
+  { x: 2050, y: 500, model: 2 },
+  { x: 3200, y: 1850, model: 0 },
+  { x: 500, y: 1150, model: 4 },
+  { x: 2900, y: 950, model: 1 },
+  { x: 1600, y: 2050, model: 2 },
+];
+
 export function createVehicles(city, random) {
   const cars = [];
-  // Parked cars along the curbs, ready to be stolen (E to enter).
-  const parkedSpots = [
-    { x: 2700, y: 2400, model: 3 }, // the Marina Coupe for mission 2
-    { x: 700, y: 500, model: 0 },
-    { x: 1600, y: 950, model: 1 },
-    { x: 2500, y: 1400, model: 4 },
-    { x: 1150, y: 1600, model: 1 },
-    { x: 2050, y: 500, model: 2 },
-    { x: 3200, y: 1850, model: 0 },
-    { x: 500, y: 1150, model: 4 },
-    { x: 2900, y: 950, model: 1 },
-    { x: 1600, y: 2050, model: 2 },
-  ];
-  for (const spot of parkedSpots) {
+  for (const spot of PARKED_SPOTS) {
     const car = makeCar(CAR_MODELS[spot.model], spot.x, spot.y, Math.PI / 2);
     car.kind = 'parked';
     cars.push(car);
   }
-  // Traffic cars on the roads.
+  // Traffic cars on the roads, already rolling.
   for (let i = 0; i < 26; i += 1) {
     const rx = pick(random, city.roadsX);
     const ry = pick(random, city.roadsY);
     const horizontal = random() < 0.5;
-    const car = makeCar(pick(random, CAR_MODELS), horizontal ? range(random, 100, WORLD.width - 100) : rx, horizontal ? ry : range(random, 100, WORLD.beachY - 100), horizontal ? (random() < 0.5 ? 0 : Math.PI) : (random() < 0.5 ? Math.PI / 2 : -Math.PI / 2));
+    const startX = horizontal ? range(random, 100, WORLD.width - 100) : rx;
+    const startY = horizontal ? ry : range(random, 100, WORLD.beachY - 100);
+    let heading;
+    if (horizontal) heading = random() < 0.5 ? 0 : Math.PI;
+    else heading = random() < 0.5 ? Math.PI / 2 : -Math.PI / 2;
+    const car = makeCar(pick(random, CAR_MODELS), startX, startY, heading);
     car.speed = range(random, 120, 220);
     pickNextTarget(car, city, random);
     cars.push(car);
@@ -58,13 +68,13 @@ export function createVehicles(city, random) {
   return cars;
 }
 
+// Drive to a nearby intersection, then pick a new one: the car always
+// travels along a road, never across a block.
 function pickNextTarget(car, city, random) {
-  // Drive to a nearby intersection, then pick a new one: the car always travels
-  // along a road, never across a block.
   const rx = city.roadsX[Math.floor(random() * city.roadsX.length)];
   const ry = city.roadsY[Math.floor(random() * city.roadsY.length)];
-  const horizontal = Math.abs(car.y - ry) < Math.abs(car.x - rx) || random() < 0.5;
-  if (horizontal) {
+  const goHorizontal = Math.abs(car.y - ry) < Math.abs(car.x - rx) || random() < 0.5;
+  if (goHorizontal) {
     car.targetX = rx;
     car.targetY = car.y;
   } else {
@@ -77,6 +87,7 @@ function pickNextTarget(car, city, random) {
   car.targetY = p.y;
 }
 
+// Is something directly ahead of this car, close enough to brake for?
 function carAhead(state, car, look) {
   const fx = Math.cos(car.angle);
   const fy = Math.sin(car.angle);
@@ -93,7 +104,8 @@ function carAhead(state, car, look) {
     const dx = p.x - car.x;
     const dy = p.y - car.y;
     const along = dx * fx + dy * fy;
-    if (along > 0 && along < look && Math.abs(dx * -fy + dy * fx) < 36) return true;
+    const side = Math.abs(dx * -fy + dy * fx);
+    if (along > 0 && along < look && side < 36) return true;
   }
   return false;
 }
@@ -126,28 +138,32 @@ export function updateTraffic(state, dt) {
   }
 }
 
-// The car the player drives: arcade handling with drift, skid smoke and a crash
-// bounce off buildings. Returns true while the player is driving.
+// The car the player drives: arcade handling with drift, skid smoke and a
+// crash bounce off buildings. Returns true while the player is driving.
 export function drivePlayerCar(state, dt, input) {
   const car = state.player.car;
   if (!car) return false;
-  const throttle = input.moveY(); // W = -1 in screen terms; invert below
+  // W gives moveY() -1, so forward is the negated throttle.
+  const throttle = input.moveY();
   const steer = input.moveX();
-  const forward = -throttle; // W gives moveY -1, so forward = +1
-  const speedSign = car.speed >= 0 ? 1 : -1;
-  if (forward > 0) car.speed += car.accel * dt;
-  else if (forward < 0) {
+  const forward = -throttle;
+  const direction = car.speed >= 0 ? 1 : -1;
+  if (forward > 0) {
+    car.speed += car.accel * dt;
+  } else if (forward < 0) {
     if (car.speed > 20) car.speed -= CAR.brake * dt;
     else car.speed -= CAR.reverseAccel * dt;
   } else {
     car.speed -= car.speed * 1.4 * dt;
   }
   car.speed = clamp(car.speed, -CAR.maxReverse, car.top);
-  const steerAmount = CAR.steer * clamp(Math.abs(car.speed) / 200, 0, 1) * speedSign;
+  const steerAmount = CAR.steer * clamp(Math.abs(car.speed) / 200, 0, 1) * direction;
   car.angle += steer * steerAmount * dt;
   const nx = car.x + Math.cos(car.angle) * car.speed * dt;
   const ny = car.y + Math.sin(car.angle) * car.speed * dt;
-  const hit = state.city.isBlocked(nx, ny, 20) || state.city.isBlocked(nx + Math.cos(car.angle) * 22, ny + Math.sin(car.angle) * 22, 12);
+  const frontX = nx + Math.cos(car.angle) * 22;
+  const frontY = ny + Math.sin(car.angle) * 22;
+  const hit = state.city.isBlocked(nx, ny, 20) || state.city.isBlocked(frontX, frontY, 12);
   if (hit) {
     if (Math.abs(car.speed) > 160) {
       state.audio.crash();
@@ -158,7 +174,7 @@ export function drivePlayerCar(state, dt, input) {
   } else {
     car.x = nx;
     car.y = ny;
-    // Skid smoke when steering hard at speed.
+    // Skid smoke when steering hard at speed, plus a steady exhaust puff.
     if (Math.abs(steer) > 0.5 && Math.abs(car.speed) > 260 && Math.random() < 0.5) {
       state.particles.spawn(0, car.x - Math.cos(car.angle) * 20, car.y - Math.sin(car.angle) * 20, -Math.cos(car.angle) * 30, -Math.sin(car.angle) * 30, 0.5, 7, '#cfc8b8');
     }
@@ -166,7 +182,7 @@ export function drivePlayerCar(state, dt, input) {
       state.particles.spawn(0, car.x - Math.cos(car.angle) * 26, car.y - Math.sin(car.angle) * 26, 0, 0, 0.35, 4, '#8a8a8a');
     }
   }
-  // Bumping into traffic cars shoves them and costs a little speed.
+  // Bumping into traffic cars shoves them aside and costs a little speed.
   for (const other of state.cars) {
     if (other === car || other.kind === 'parked') continue;
     const d = Math.hypot(other.x - car.x, other.y - car.y);

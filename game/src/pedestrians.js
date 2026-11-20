@@ -1,8 +1,9 @@
-// Pedestrians: the people of Solmar Bay. They stroll the sidewalks, cross at
-// intersections, chat in the plaza, and run away screaming when gunfire goes off
-// or a car bears down on them. Hitting one with a car or a fist raises the heat.
-// The 3D edition keeps their walks and their rules; the renderer just draws
-// each one as a small box figure in the street instead of a painted circle.
+// Pedestrians: the people of Solmar Bay. They stroll the sidewalks, cross
+// at intersections, chat in the plaza, and run away when gunfire goes off
+// or a car bears down on them. Hitting one with a car or a fist raises the
+// heat. The 3D edition keeps their walks and their rules; the renderer just
+// draws each one as a small box figure in the street instead of a painted
+// circle.
 
 import { WORLD } from './config.js';
 import { pick, range } from './random.js';
@@ -14,18 +15,21 @@ const SKINS = ['#f2c9a0', '#d9a06b', '#b87a4a', '#8a5a30', '#e8b88a'];
 export function createPedestrians(city, random, count = 42) {
   const people = [];
   for (let i = 0; i < count; i += 1) {
-    const p = city.nearestRoadPoint(range(random, 100, WORLD.width - 100), range(random, 100, WORLD.beachY - 100));
+    const spot = city.nearestRoadPoint(
+      range(random, 100, WORLD.width - 100),
+      range(random, 100, WORLD.beachY - 100),
+    );
     people.push({
       name: pick(random, NAMES),
-      x: p.x + range(random, -60, 60),
-      y: p.y + range(random, -60, 60),
+      x: spot.x + range(random, -60, 60),
+      y: spot.y + range(random, -60, 60),
       angle: range(random, 0, Math.PI * 2),
       speed: range(random, 34, 62),
       shirt: pick(random, SHIRTS),
       skin: pick(random, SKINS),
       state: 'walk', // walk | flee | down
-      targetX: p.x,
-      targetY: p.y,
+      targetX: spot.x,
+      targetY: spot.y,
       timer: range(random, 0, 4),
       panic: 0,
     });
@@ -33,17 +37,21 @@ export function createPedestrians(city, random, count = 42) {
   return people;
 }
 
+// Pick a new place to stroll to, near where the pedestrian already is.
 function pickStrollTarget(ped, city, random) {
-  const p = city.nearestRoadPoint(ped.x + range(random, -500, 500), ped.y + range(random, -500, 500));
-  ped.targetX = p.x + range(random, -40, 40);
-  ped.targetY = p.y + range(random, -40, 40);
+  const spot = city.nearestRoadPoint(
+    ped.x + range(random, -500, 500),
+    ped.y + range(random, -500, 500),
+  );
+  ped.targetX = spot.x + range(random, -40, 40);
+  ped.targetY = spot.y + range(random, -40, 40);
 }
 
 export function updatePedestrians(state, dt) {
   const city = state.city;
   const px = state.player.x;
   const py = state.player.y;
-  const danger = state.shotsFired > 0 && state.time - state.lastShotTime < 2;
+  const recentShot = state.shotsFired > 0 && state.time - state.lastShotTime < 2;
   for (const ped of state.peds) {
     if (ped.state === 'down') {
       ped.timer -= dt;
@@ -56,8 +64,10 @@ export function updatePedestrians(state, dt) {
     }
     const nearPlayer = Math.hypot(ped.x - px, ped.y - py) < 130;
     const playerCar = state.player.car;
-    const carThreat = playerCar && Math.abs(playerCar.speed) > 120 && Math.hypot(ped.x - playerCar.x, ped.y - playerCar.y) < 120;
-    if ((danger && nearPlayer) || carThreat || state.wanted >= 3 && nearPlayer) {
+    const carThreat = playerCar
+      && Math.abs(playerCar.speed) > 120
+      && Math.hypot(ped.x - playerCar.x, ped.y - playerCar.y) < 120;
+    if ((recentShot && nearPlayer) || carThreat || (state.wanted >= 3 && nearPlayer)) {
       ped.state = 'flee';
       ped.panic = 2.5;
     }

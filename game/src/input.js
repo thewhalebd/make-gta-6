@@ -1,10 +1,14 @@
-// Keyboard and mouse input. Held keys give movement and driving; one-shot presses
-// (confirm, pause, enter car, punch, interact) are queued as bit flags and taken once
-// by the loop, so a press between two frames is never lost and never counted twice.
-// The mouse aims (on foot) and fires with a click; the pointer position is reported
-// in canvas pixels and converted to world coordinates by the renderer's raycast.
-// In the 3D edition the listeners sit on the #game WebGL canvas, under the
-// transparent #hud overlay, which never takes pointer events.
+// Keyboard and mouse input.
+//
+// Held keys give movement and driving. One-shot presses — confirm, pause,
+// enter a car, punch, start a mission — are queued as bit flags and taken
+// exactly once by the loop, so a press that lands between two frames is
+// never lost and never counted twice. The mouse aims (on foot) and fires
+// with a click; its position is reported in canvas pixels and turned into
+// world coordinates by the renderer's raycast.
+//
+// The listeners sit on the #game WebGL canvas, under the transparent #hud
+// overlay, which never takes pointer events.
 
 export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;
@@ -12,62 +16,63 @@ export const ACTION_ENTER = 4;
 export const ACTION_PUNCH = 8;
 export const ACTION_INTERACT = 16;
 
-const UP = new Set(['KeyW', 'ArrowUp']);
-const DOWN = new Set(['KeyS', 'ArrowDown']);
-const LEFT = new Set(['KeyA', 'ArrowLeft']);
-const RIGHT = new Set(['KeyD', 'ArrowRight']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
+const CONFIRM_KEYS = new Set(['Space', 'Enter']);
+const PAUSE_KEYS = new Set(['KeyP', 'Escape']);
+const SCROLL_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
 export function createInput(canvas) {
   const keys = new Set();
-  let actions = 0;
+  let queued = 0;
   let mouseX = 0;
   let mouseY = 0;
   let mouseDown = false;
-  let mouseClicked = false;
+  let clicked = false;
 
-  window.addEventListener('keydown', (event) => {
-    if (event.code === 'KeyE' && !event.repeat) actions |= ACTION_ENTER;
-    else if (event.code === 'KeyF' && !event.repeat) actions |= ACTION_PUNCH;
-    else if (event.code === 'KeyM' && !event.repeat) actions |= ACTION_INTERACT;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
+  function noteKey(event) {
+    if (event.code === 'KeyE' && !event.repeat) queued |= ACTION_ENTER;
+    else if (event.code === 'KeyF' && !event.repeat) queued |= ACTION_PUNCH;
+    else if (event.code === 'KeyM' && !event.repeat) queued |= ACTION_INTERACT;
+    else if (CONFIRM_KEYS.has(event.code)) {
+      if (!event.repeat) queued |= ACTION_CONFIRM;
+    } else if (PAUSE_KEYS.has(event.code)) {
+      if (!event.repeat) queued |= ACTION_PAUSE;
     }
     keys.add(event.code);
-    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) event.preventDefault();
-  });
+    if (SCROLL_KEYS.includes(event.code)) event.preventDefault();
+  }
+
+  window.addEventListener('keydown', noteKey);
   window.addEventListener('keyup', (event) => keys.delete(event.code));
   window.addEventListener('blur', () => {
     keys.clear();
     mouseDown = false;
   });
 
-  canvas.addEventListener('pointermove', (event) => {
+  function trackPointer(event) {
     const rect = canvas.getBoundingClientRect();
     mouseX = event.clientX - rect.left;
     mouseY = event.clientY - rect.top;
-  });
+  }
+
+  canvas.addEventListener('pointermove', trackPointer);
   canvas.addEventListener('pointerdown', (event) => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = event.clientX - rect.left;
-    mouseY = event.clientY - rect.top;
+    trackPointer(event);
     mouseDown = true;
-    mouseClicked = true;
-    actions |= ACTION_CONFIRM;
+    clicked = true;
+    queued |= ACTION_CONFIRM;
   });
   window.addEventListener('pointerup', () => {
     mouseDown = false;
   });
 
+  // -1, 0 or 1 along one axis from a pair of keys. WASD is tried first;
+  // the arrow keys only count when WASD says nothing, so holding W and
+  // Down together still walks forward instead of cancelling out.
   function axis(neg, pos) {
     return (keys.has(pos) ? 1 : 0) - (keys.has(neg) ? 1 : 0);
   }
 
   return {
-    /** -1/0/1 on each axis from WASD or the arrow keys. */
     moveX() {
       return axis('KeyA', 'KeyD') || axis('ArrowLeft', 'ArrowRight');
     },
@@ -81,13 +86,13 @@ export function createInput(canvas) {
       return { x: mouseX, y: mouseY, down: mouseDown };
     },
     takeClick() {
-      const c = mouseClicked;
-      mouseClicked = false;
-      return c;
+      const wasClicked = clicked;
+      clicked = false;
+      return wasClicked;
     },
     takeActions() {
-      const taken = actions;
-      actions = 0;
+      const taken = queued;
+      queued = 0;
       return taken;
     },
   };

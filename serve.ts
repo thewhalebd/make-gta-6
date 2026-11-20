@@ -1,9 +1,10 @@
-// A tiny static server for game/ (Node 22, standard library only), so an entry can be played
-// locally without a build step: `node serve.ts` serves game/ on http://localhost:8080.
-// It sends the MIME types a browser game needs, refuses any path outside game/, and otherwise
-// does nothing clever: this is a development convenience, not a web server for the internet.
-// The 3D edition serves the same way — the game is still plain static files, and the
-// WebGL view needs no server feature beyond the files themselves.
+// A tiny static server for game/ (Node 22, standard library only), so an entry
+// can be played locally without a build step: `node serve.ts` serves game/ on
+// http://localhost:8080. It sends the MIME types a browser game needs, refuses
+// any path outside game/, and otherwise does nothing clever: this is a
+// development convenience, not a web server for the internet. The 3D edition
+// serves the same way — the game is still plain static files, and the WebGL
+// view needs no server feature beyond the files themselves.
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -39,22 +40,8 @@ const MIME: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://localhost');
-  let pathname: string;
-  try {
-    pathname = decodeURIComponent(url.pathname);
-  } catch {
-    response.writeHead(400).end('bad request');
-    return;
-  }
-  if (pathname.endsWith('/')) pathname += 'index.html';
-  const file = resolve(join(root, normalize(pathname)));
-  if (file !== root && !file.startsWith(root + sep)) {
-    response.writeHead(403).end('forbidden');
-    return;
-  }
-  let size: number;
+function sendFile(response, file) {
+  let size;
   try {
     const stats = statSync(file);
     if (!stats.isFile()) throw new Error('not a file');
@@ -69,6 +56,24 @@ createServer((request, response) => {
     'cache-control': 'no-store',
   });
   createReadStream(file).pipe(response);
+}
+
+createServer((request, response) => {
+  const url = new URL(request.url ?? '/', 'http://localhost');
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    response.writeHead(400).end('bad request');
+    return;
+  }
+  if (pathname.endsWith('/')) pathname += 'index.html';
+  const file = resolve(join(root, normalize(pathname)));
+  if (file !== root && !file.startsWith(root + sep)) {
+    response.writeHead(403).end('forbidden');
+    return;
+  }
+  sendFile(response, file);
 }).listen(port, '127.0.0.1', () => {
   console.log(`game/ is on http://localhost:${port}`);
 });

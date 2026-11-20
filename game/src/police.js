@@ -1,9 +1,9 @@
-// The Solmar Bay police: patrol cars that spawn at the edge of the camera's view
-// when the wanted level rises, chase the player (in a car or on foot), ram the
+// The Solmar Bay police: patrol cars that spawn just out of sight when the
+// wanted level rises, chase the player (in a car or on foot), ram the
 // player's car, and arrest the player on foot if they hold him long enough.
-// When no cop can see the player, the heat cools and the stars fall away. The
-// 3D edition keeps the whole chase; the renderer adds the flashing red-and-blue
-// light bar on each patrol car's roof.
+// When no cop can see the player, the heat cools and the stars fall away.
+// The 3D edition keeps the whole chase; the renderer adds the flashing
+// red-and-blue light bar on each patrol car's roof.
 
 import { POLICE, WANTED } from './config.js';
 import { angleDiff, clamp } from './random.js';
@@ -12,8 +12,10 @@ export function createPolice() {
   return { cars: [], spawnTimer: 0, arrestProgress: 0, sirenTimer: 0 };
 }
 
-function wantedCarCount(wanted) {
-  return [0, 1, 2, 3, 4, 5][wanted] || 0;
+// How many patrol cars a wanted level puts on the street.
+function carsForWanted(wanted) {
+  const table = [0, 1, 2, 3, 4, 5];
+  return table[wanted] || 0;
 }
 
 export function updatePolice(state, dt) {
@@ -24,16 +26,26 @@ export function updatePolice(state, dt) {
   police.sirenTimer -= dt;
 
   // Spawn up to the wanted level's car count, just off-screen from the player.
-  const want = Math.min(wantedCarCount(wanted), POLICE.maxCops);
+  const want = Math.min(carsForWanted(wanted), POLICE.maxCops);
   if (police.cars.length < want && police.spawnTimer <= 0) {
     police.spawnTimer = POLICE.spawnInterval;
-    const a = Math.random() * Math.PI * 2;
-    const x = player.x + Math.cos(a) * 700;
-    const y = player.y + Math.sin(a) * 700;
-    const p = state.city.nearestRoadPoint(Math.max(60, Math.min(3540, x)), Math.max(60, Math.min(2540, y)));
+    const angle = Math.random() * Math.PI * 2;
+    const rawX = player.x + Math.cos(angle) * 700;
+    const rawY = player.y + Math.sin(angle) * 700;
+    const spot = state.city.nearestRoadPoint(
+      Math.max(60, Math.min(3540, rawX)),
+      Math.max(60, Math.min(2540, rawY)),
+    );
     police.cars.push({
-      x: p.x, y: p.y, angle: 0, speed: 0,
-      color: POLICE.carColor, kind: 'police', model: 'Police Cruiser', top: POLICE.maxSpeed, accel: POLICE.accel,
+      x: spot.x,
+      y: spot.y,
+      angle: 0,
+      speed: 0,
+      color: POLICE.carColor,
+      kind: 'police',
+      model: 'Police Cruiser',
+      top: POLICE.maxSpeed,
+      accel: POLICE.accel,
     });
     if (police.sirenTimer <= 0) {
       state.audio.siren();
@@ -75,11 +87,12 @@ export function updatePolice(state, dt) {
       }
     }
   }
-  if (!police.cars.some((c) => Math.hypot(c.x - player.x, c.y - player.y) < 34)) {
+  const touching = police.cars.some((c) => Math.hypot(c.x - player.x, c.y - player.y) < 34);
+  if (!touching) {
     police.arrestProgress = Math.max(0, police.arrestProgress - dt * 2);
   }
 
-  // Heat cools when the player is out of sight for a while.
+  // Heat cools when the player has been out of sight for a while.
   if (wanted > 0 && !anyNear && state.time - state.lastCrimeTime > WANTED.decayDelay) {
     state.wantedHeat -= WANTED.decayRate * dt;
     if (state.wantedHeat <= state.wanted - 1) {
