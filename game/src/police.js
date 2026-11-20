@@ -1,7 +1,9 @@
 // The Solmar Bay police: patrol cars that spawn at the edge of the camera's view
 // when the wanted level rises, chase the player (in a car or on foot), ram the
 // player's car, and arrest the player on foot if they hold him long enough.
-// When no cop can see the player, the heat cools and the stars fall away.
+// When no cop can see the player, the heat cools and the stars fall away. The
+// 3D edition keeps the whole chase; the renderer adds the flashing red-and-blue
+// light bar on each patrol car's roof.
 
 import { POLICE, WANTED } from './config.js';
 import { angleDiff, clamp } from './random.js';

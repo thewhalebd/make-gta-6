@@ -1,7 +1,9 @@
 // Missions and the story: six jobs from Mara Solis and Tito Reyes that pay down
 // Dario's $50,000 debt to Cassian Voss. Each mission is a list of steps — go to a
 // place, steal a car, deliver it, defeat thugs, escape the police, face the boss.
-// Completing a step advances the story, pays cash and saves the game.
+// Completing a step advances the story, pays cash and saves the game. The 3D
+// rebuild keeps all six missions and their rules; only the golden marker is now
+// a tall beam in the 3D world instead of a painted stripe on a flat map.
 
 import { MISSIONS, STORY } from './config.js';
 import { dist } from './random.js';

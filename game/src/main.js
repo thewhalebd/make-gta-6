@@ -1,6 +1,8 @@
 // Solmar Bay — boot and the one loop. The game moves between six screens:
 // title, play, paused, busted, wasted and win. Input is read every frame, the
 // world advances in fixed 1/60 s steps, and the renderer paints what is there.
+// The 3D edition draws the world with raw WebGL on #game and the HUD and menus
+// with canvas 2D on a second canvas, #hud, stacked on top of it.
 //
 // ?seed=N fixes the city. ?shot=start|play|chase|mission (with &seed=N) stages
 // that scene instead of running the loop, paints it twice and sets
@@ -31,12 +33,13 @@ const seedParam = Number.parseInt(params.get('seed') ?? '', 10);
 const seed = Number.isInteger(seedParam) ? seedParam : Math.floor(Math.random() * 4294967296);
 
 const canvas = document.getElementById('game');
+const hudCanvas = document.getElementById('hud');
 const status = document.getElementById('status');
 const random = createRandom(seed);
 const city = createCity(random);
 const audio = createAudio();
 const renderer = createRenderer(canvas);
-const hud = createHud(canvas);
+const hud = createHud(hudCanvas);
 
 function createState() {
   const state = {
@@ -72,6 +75,12 @@ function createState() {
 }
 
 const state = createState();
+
+// A small hook for play-testing: window.__solmar is the live game state, and
+// window.__solmarScreen() reports the current screen. Nothing in the game
+// reads them; they only let a test drive the game and check what happened.
+window.__solmar = state;
+window.__solmarScreen = () => 'boot';
 
 // One fixed step of the whole world. `drive` is the staged-scene autopilot:
 // when set, the player's car is driven forward instead of reading the keyboard.
@@ -146,6 +155,7 @@ function runShot(name) {
 function runGame() {
   const input = createInput(canvas);
   let screen = SCREEN_TITLE;
+  window.__solmarScreen = () => screen;
   let accumulator = 0;
   let last = performance.now();
 

@@ -2,7 +2,9 @@
 // (confirm, pause, enter car, punch, interact) are queued as bit flags and taken once
 // by the loop, so a press between two frames is never lost and never counted twice.
 // The mouse aims (on foot) and fires with a click; the pointer position is reported
-// in canvas pixels and converted to world coordinates by the renderer.
+// in canvas pixels and converted to world coordinates by the renderer's raycast.
+// In the 3D edition the listeners sit on the #game WebGL canvas, under the
+// transparent #hud overlay, which never takes pointer events.
 
 export const ACTION_CONFIRM = 1;
 export const ACTION_PAUSE = 2;

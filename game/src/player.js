@@ -1,6 +1,9 @@
 // Dario Cruz on foot: walk and run, enter and leave cars, pick up health, ammo
 // and cash, and take damage. Driving lives in vehicles.js; fighting lives in
-// combat.js; this file is the body that walks the streets of Solmar Bay.
+// combat.js; this file is the body that walks the streets of Solmar Bay. The 3D
+// edition changes one thing about him: on foot the chase camera follows the
+// direction he walks, not the direction he aims, so aiming at the mouse never
+// swings the camera around.
 
 import { PLAYER, WANTED } from './config.js';
 import { clamp } from './random.js';

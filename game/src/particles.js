@@ -1,6 +1,8 @@
 // Particles and floating text: tyre smoke, muzzle flashes, exhaust puffs, impact
 // sparks, blood-free "poof" hits and the "+$800" popups. One fixed pool, no
-// allocation while the game runs.
+// allocation while the game runs. The 3D renderer draws each particle as a small
+// box in the world and projects the floating texts onto the HUD canvas, so the
+// same popups the 2D game showed still float above the street.
 
 export const P_SMOKE = 0;
 export const P_SPARK = 1;

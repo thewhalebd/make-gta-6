@@ -1,7 +1,8 @@
 // Sound and music, all synthesized with WebAudio oscillators — no audio files,
 // no network. A tiny sequencer plays a sunny latin-flavoured loop (bass + chords +
 // a plucked lead), and one-shot effects cover gunshots, punches, sirens, pickups
-// and the engine hum while driving.
+// and the engine hum while driving. The 3D rebuild changes nothing here: the
+// same sounds play over the same game, only the camera moved.
 
 export function createAudio() {
   let context = null;

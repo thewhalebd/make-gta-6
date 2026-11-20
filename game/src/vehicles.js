@@ -1,7 +1,9 @@
 // Vehicles: the traffic that fills Solmar Bay's roads, the parked cars waiting to
 // be stolen, and the arcade driving model for the car the player is in. Traffic
 // cars follow the road grid, keep to their lane, brake for the car ahead and pick
-// a new turning at every intersection.
+// a new turning at every intersection. The 3D edition keeps the driving model
+// exactly; the renderer builds each car from boxes — body, cabin, wheels —
+// with the same paint, length and width the 2D game drew.
 
 import { CAR, CAR_MODELS, WORLD } from './config.js';
 import { angleDiff, clamp, pick, range } from './random.js';

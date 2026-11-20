@@ -2,6 +2,8 @@
 // crime game. Dario Cruz owes casino boss Cassian Voss $50,000 and works six missions out
 // of Mara Solis's garage to pay it down, across a sun-soaked coastal city he can explore
 // on foot and by car, with traffic, pedestrians, police chases, combat and a minimap.
+// The 3D edition rebuilds the look with a raw-WebGL chase camera and a separate 2D HUD
+// canvas, keeping every mission and feature of the game it replaces.
 // The game is this directory's game/ folder, plain static files a desktop browser loads
 // offline (game/index.html and its ES modules, no library and no network request), and
 // the program hands it in. It copies game/ and screenshots/ from beside this file to

@@ -1,7 +1,9 @@
 // Combat: fists, the pistol, bullets, and the thugs and the boss who fight back.
 // Thugs chase the player and punch; the boss, Cassian Voss, shoots back. Bullets
 // are a small pool; a hit on a thug or the boss pays out, a hit on a bystander
-// raises the wanted level.
+// raises the wanted level. The 3D edition keeps every rule and only changes
+// how the player aims: the mouse point is raycast onto the street by the
+// WebGL renderer instead of being read off a top-down map.
 
 import { PLAYER, WANTED } from './config.js';
 import { angleTo, clamp, dist } from './random.js';

@@ -1,5 +1,7 @@
 // A small seeded random generator (mulberry32) plus the helpers the city and the
 // traffic use, so a ?seed=N screenshot stages exactly the same Solmar Bay every time.
+// The 3D camera smooths its heading through angleLerp(), which always turns the
+// short way around the circle instead of spinning the long way.
 
 export function createRandom(seed) {
   let a = seed >>> 0;
@@ -56,4 +58,9 @@ export function angleDiff(a, b) {
   if (d > Math.PI) d -= Math.PI * 2;
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
+}
+
+// Move angle a toward angle b by fraction t, always the short way around.
+export function angleLerp(a, b, t) {
+  return a + angleDiff(a, b) * t;
 }

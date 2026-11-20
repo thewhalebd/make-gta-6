@@ -6,6 +6,9 @@
 
 **Solmar Bay** is an original open-world crime game that runs entirely offline in a
 desktop browser from static files — no build step, no network requests, no libraries.
+The 3D edition renders the city with raw WebGL (one hand-written shader, no engine,
+no vendored code) behind a chase camera, with the HUD and minimap drawn on a second
+canvas on top.
 
 Dario Cruz comes home to the sun-soaked coastal city of Solmar Bay owing $50,000 to
 casino boss Cassian Voss. His old friend Mara Solis runs a garage and gives him jobs
@@ -16,9 +19,10 @@ the marina. Six missions, one story, and a city that keeps living around you.
 
 ## What's in the city
 
-- **A city to explore on foot and by car** — Downtown, Old Town, the Market Quarter,
-  the Marina, the Hills and the Beachfront, with traffic, pedestrians, parks, palms
-  and a golden-hour sun that moves across the sky.
+- **A 3D city to explore on foot and by car** — Downtown, Old Town, the Market Quarter,
+  the Marina, the Hills and the Beachfront, with buildings that stand up in real height,
+  traffic, pedestrians, parks, palms and a golden-hour sun that moves across the sky,
+  all seen from a chase camera that follows Dario or his car.
 - **Cars to steal and drive** — six original models (Coral Hatchback, Solmar Sedan,
   Palm Taxi, Marina Coupe, Dune Pickup, the rare Voss GT) with arcade handling,
   skid smoke and crash physics. Press **E** near a car to take it.
@@ -76,13 +80,16 @@ The four screenshots in `screenshots/` are real renders of the game, staged with
 
 ## Structure
 
-The game is pure canvas 2D, split into one-job modules under `game/src/`:
-`config.js` (tuning, story, missions), `city.js` (city generation and collision),
-`vehicles.js` (traffic and driving), `pedestrians.js`, `police.js`, `player.js`,
-`combat.js` (fists, pistol, thugs), `missions.js`, `hud.js` (HUD, minimap, menus),
-`render.js` (camera and drawing), `audio.js` (WebAudio sound and music),
-`input.js`, `particles.js`, `save.js`, `shots.js` (deterministic screenshot scenes),
-`main.js` (the loop and the screens).
+The game is split into one-job modules under `game/src/`, drawn in two layers:
+`render.js` paints the 3D world with raw WebGL (a single lambert-sun shader, the
+city baked once into a static buffer, cars and people rebuilt each frame) on the
+`#game` canvas, and `hud.js` draws the HUD, minimap and menus with canvas 2D on
+the transparent `#hud` canvas stacked on top. The rest is unchanged:
+`config.js` (tuning, story, missions, camera), `city.js` (city generation and
+collision), `vehicles.js` (traffic and driving), `pedestrians.js`, `police.js`,
+`player.js`, `combat.js` (fists, pistol, thugs), `missions.js`, `audio.js`
+(WebAudio sound and music), `input.js`, `particles.js`, `save.js`, `shots.js`
+(deterministic screenshot scenes), `main.js` (the loop and the screens).
 
 ## License
 

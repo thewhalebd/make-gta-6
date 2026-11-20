@@ -2,6 +2,9 @@
 // the parks and the plaza, and the district names. Everything is generated once from
 // the seed, so the same seed always builds the same city. The buildings are solid:
 // isBlocked() is what the player, cars and pedestrians ask before they move.
+// The 3D renderer reads the same buildings and stands them up with
+// buildingHeight3D(), so the city the player drives through is the city the
+// collision model already knows.
 
 import { WORLD } from './config.js';
 import { chance, hash2, pick, range, rangeInt } from './random.js';
@@ -140,4 +143,11 @@ export function daylightTint(timeOfDay) {
 
 export function buildingShade(building) {
   return hash2(Math.round(building.x), Math.round(building.y));
+}
+
+// How tall a building stands in the 3D view: one storey is about 42 units,
+// on a 34-unit ground floor, so a 5-storey downtown block rises well above
+// the chase camera and the skyline reads from the street.
+export function buildingHeight3D(building) {
+  return 34 + building.height * 42;
 }

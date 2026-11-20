@@ -1,6 +1,8 @@
 // Pedestrians: the people of Solmar Bay. They stroll the sidewalks, cross at
 // intersections, chat in the plaza, and run away screaming when gunfire goes off
 // or a car bears down on them. Hitting one with a car or a fist raises the heat.
+// The 3D edition keeps their walks and their rules; the renderer just draws
+// each one as a small box figure in the street instead of a painted circle.
 
 import { WORLD } from './config.js';
 import { pick, range } from './random.js';

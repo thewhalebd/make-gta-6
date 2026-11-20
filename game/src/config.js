@@ -1,12 +1,27 @@
 // Solmar Bay — every tuning number, name and colour in one place.
 // An original sun-soaked coastal city. Nothing here is from any commercial game:
 // the city, the people, the cars and the story are all invented for this entry.
+// The 3D edition adds the chase-camera tuning (CAMERA) and the golden-afternoon
+// palette the WebGL renderer lights the city with; every other number is the
+// same game the 2D edition played.
 
 export const STEP = 1 / 60;
 export const SAVE_KEY = 'solmar-bay.save.v1';
 
 // The city is 3600 x 2600 world units. Roads run on a grid; the south edge is the beach.
 export const WORLD = { width: 3600, height: 2600, roadGap: 450, roadWidth: 96, beachY: 2320 };
+
+// The 3D chase camera: how far behind the player it sits, how high, how far
+// ahead it looks, and how much both grow with the car's speed. The view is
+// a 60-degree perspective, the same framing a third-person open-world game uses.
+export const CAMERA = {
+  fov: 60,
+  distance: 260,
+  height: 120,
+  lookAhead: 170,
+  speedDistance: 0.12,
+  speedHeight: 0.05,
+};
 
 export const CITY_NAME = 'SOLMAR BAY';
 export const GAME_TITLE = 'SOLMAR BAY';

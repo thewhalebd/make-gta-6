@@ -1,8 +1,12 @@
-// The HUD and the menus, drawn on the canvas: health and money, the wanted
-// stars, the speedometer, the mission objective, the minimap in the corner, the
+// The HUD and the menus, drawn with canvas 2D on the #hud overlay canvas that
+// sits on top of the WebGL world canvas: health and money, the wanted stars,
+// the speedometer, the mission objective, the minimap in the corner, the
 // dialogue box, the start screen, the pause menu and the busted/wasted screens.
 // The minimap shows the roads, the player, the police, the mission marker and
-// the garage, so the player can always find the next job.
+// the garage, so the player can always find the next job. Anything that points
+// at a place in the 3D world (the "Press E" prompt, the floating "+$800"
+// popups) is placed with the renderer's view.project() world-to-screen map,
+// never with a top-down camera offset.
 
 import { CITY_NAME, FONT, PALETTE, STORY, WORLD } from './config.js';
 import { currentMission, missionObjective } from './missions.js';
@@ -19,6 +23,16 @@ const MINIMAP = { x: 16, y: 16, w: 210, h: 150 };
 
 export function createHud(canvas) {
   const ctx = canvas.getContext('2d');
+  // The overlay canvas is sized like the game canvas, transparent, so the 3D
+  // world shows through everywhere the HUD does not draw.
+  function resize() {
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(window.innerWidth * ratio);
+    canvas.height = Math.round(window.innerHeight * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
   const fonts = new Map();
   function font(size, bold) {
     const key = `${size}:${bold ? 1 : 0}`;
@@ -114,6 +128,9 @@ export function createHud(canvas) {
   function drawHud(state, view) {
     const W = view.w;
     const H = view.h;
+    // The overlay canvas is ours alone: clear it every frame, or last
+    // frame's HUD would ghost over this one.
+    ctx.clearRect(0, 0, W, H);
     drawMinimap(state, view);
     // Top centre: wanted stars.
     drawStars(state, W / 2 - 70, 44);
@@ -159,10 +176,22 @@ export function createHud(canvas) {
       ctx.fill();
       text(state.missions.banner, W / 2, 156, 30, PALETTE.hudAccent, 'center', true);
     }
-    // "Press E" prompt near a car.
+    // "Press E" prompt above the player's head, placed through the 3D
+    // camera's world-to-screen projection (nothing shows when he is off
+    // screen, which a top-down offset could never know).
     if (state.nearCar && !state.player.inCar) {
-      text(`Press E — ${state.nearCar.model}`, state.player.x - view.camX + 0, state.player.y - view.camY - 40, 15, '#ffffff', 'center', true);
+      const sp = view.project ? view.project(state.player.x, state.player.y, 64) : null;
+      if (sp) text(`Press E — ${state.nearCar.model}`, sp.x, sp.y, 15, '#ffffff', 'center', true);
     }
+    // Floating "+$800" popups, projected from the world like the prompt.
+    for (const t of state.particles.texts) {
+      if (!t.active) continue;
+      const sp = view.project ? view.project(t.x, t.y, 56) : null;
+      if (!sp) continue;
+      ctx.globalAlpha = Math.min(1, (t.life / t.max) * 2);
+      text(t.text, sp.x, sp.y, 16, t.color, 'center', true);
+    }
+    ctx.globalAlpha = 1;
     // Arrest progress bar.
     if (state.police.arrestProgress > 0.2) {
       panel(W / 2 - 140, H - 180, 280, 44);
@@ -187,6 +216,7 @@ export function createHud(canvas) {
   function drawTitle(state, best) {
     const W = state.view.w;
     const H = state.view.h;
+    ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(10,14,22,0.45)';
     ctx.fillRect(0, 0, W, H);
     text(CITY_NAME, W / 2, H / 2 - 90, 84, '#ffd94d', 'center', true);
@@ -205,8 +235,11 @@ export function createHud(canvas) {
   }
 
   function drawPanel(title, lines, prompt) {
-    const W = state.view.w;
-    const H = state.view.h;
+    // The panel is drawn over a fresh drawHud, so it reads the canvas size
+    // itself; it takes no state, which an earlier version of this function
+    // wrongly reached for (and threw every frame it was shown).
+    const W = canvas.clientWidth;
+    const H = canvas.clientHeight;
     ctx.fillStyle = 'rgba(10,14,22,0.6)';
     ctx.fillRect(0, 0, W, H);
     panel(W / 2 - 320, H / 2 - 140, 640, 280);
